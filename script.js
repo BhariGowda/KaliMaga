@@ -1,3 +1,3 @@
-console.log ("hello world");
-const = bhari;
-
+let testing = {
+    console.log("Testing");
+};
