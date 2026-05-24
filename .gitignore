@@ -1,0 +1,12 @@
+# Foundry build artifacts
+out/
+cache/
+
+# Node / TypeScript
+node_modules/
+dist/
+*.js.map
+
+# Environment
+.env
+.env.local
