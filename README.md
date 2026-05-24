@@ -1,18 +1,22 @@
-# KaliMaga JavaScript/Typescript experiments by Bhari Gowda.
+# KaliMaga — JavaScript / TypeScript for Web3
 
-## Focus bitbybit
-- Smart contract security
+Ethereum tooling, smart contract utilities, and DeFi experiments by **Bhari Gowda**.
+
+## Focus
+
+- Smart contract security & auditing
 - Solidity learning
-- Ethereum tooling
-- JavaScript automation
-- Web3-DeFi experiments
+- Ethereum tooling (unit math, RPC interaction, event parsing)
+- JavaScript / TypeScript automation
+- Web3 / DeFi experiments
 
 ## Stack
-- JavaScript
-- Solidity
-- Hardhat
-- Ethers.js
-- Linux (Ubuntu)
 
-## Current Goal
-Build and audit small smart contracts daily. (WAGMI)
+| Layer | Tool |
+|---|---|
+| Smart contracts | Solidity + Foundry |
+| Ethereum client | Viem |
+| Language | TypeScript / JavaScript |
+| OS | Ubuntu 24.04 |
+
+## Structure
