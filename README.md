@@ -1,13 +1,11 @@
-# KaliMaga
+# KaliMaga JavaScript/Typescript experiments by Bhari Gowda.
 
-Crypto + Solidity + JavaScript experiments by Bhari Gowda.
-
-## Focus
+## Focus bitbybit
 - Smart contract security
 - Solidity learning
 - Ethereum tooling
 - JavaScript automation
-- Web3 experiments
+- Web3-DeFi experiments
 
 ## Stack
 - JavaScript
@@ -17,4 +15,4 @@ Crypto + Solidity + JavaScript experiments by Bhari Gowda.
 - Linux (Ubuntu)
 
 ## Current Goal
-Build and audit small smart contracts daily.
+Build and audit small smart contracts daily. (WAGMI)
