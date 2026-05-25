@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+import {Collateral} from "./Collateral.sol";
+
 /**
  * @title LendingPool
  * @notice Single-asset lending pool supporting deposit, borrow, repay, and
@@ -15,85 +17,29 @@ pragma solidity ^0.8.20;
  *      low-level calls to handle both returning and non-returning ERC-20s
  *      (e.g. USDT on mainnet).
  */
-contract LendingPool {
-    // -------------------------------------------------------------------------
-    // Constants
-    // -------------------------------------------------------------------------
-
-    /// @notice Fraction of a user's deposit they may borrow, in basis points.
-    uint256 public constant COLLATERAL_FACTOR = 7_500; // 75 %
-    uint256 private constant _BASIS = 10_000;
-
-    // -------------------------------------------------------------------------
-    // Storage
-    // -------------------------------------------------------------------------
-
-    /// @notice Tokens deposited per user per asset.
-    /// @dev    deposits[token][user]
-    mapping(address => mapping(address => uint256)) public deposits;
-
-    /// @notice Tokens borrowed per user per asset.
-    /// @dev    borrows[token][user]
-    mapping(address => mapping(address => uint256)) public borrows;
-
-    /// @notice Net token balance held by the pool for each asset.
-    /// @dev    Increases on deposit/repay; decreases on withdraw/borrow.
-    mapping(address => uint256) public poolLiquidity;
-
-    /// @dev Two-state reentrancy lock (1 = unlocked, 2 = locked).
-    uint256 private _locked = 1;
-
+contract LendingPool is Collateral {
     // -------------------------------------------------------------------------
     // Events
     // -------------------------------------------------------------------------
 
-    /**
-     * @notice Emitted when a user deposits tokens into the pool.
-     * @param user   Depositor address.
-     * @param token  ERC-20 asset deposited.
-     * @param amount Amount deposited.
-     */
+    /// @notice Emitted when a user deposits tokens into the pool.
     event Deposited(address indexed user, address indexed token, uint256 amount);
 
-    /**
-     * @notice Emitted when a user borrows tokens from the pool.
-     * @param user   Borrower address.
-     * @param token  ERC-20 asset borrowed.
-     * @param amount Amount borrowed.
-     */
+    /// @notice Emitted when a user borrows tokens from the pool.
     event Borrowed(address indexed user, address indexed token, uint256 amount);
 
     /**
      * @notice Emitted when a user repays part or all of their outstanding debt.
-     * @param user      Repayer address.
-     * @param token     ERC-20 asset repaid.
-     * @param amount    Amount repaid in this transaction.
      * @param remaining Debt balance still outstanding after repayment.
      */
-    event Repaid(
-        address indexed user,
-        address indexed token,
-        uint256 amount,
-        uint256 remaining
-    );
+    event Repaid(address indexed user, address indexed token, uint256 amount, uint256 remaining);
 
-    /**
-     * @notice Emitted when a user withdraws previously deposited tokens.
-     * @param user   Withdrawer address.
-     * @param token  ERC-20 asset withdrawn.
-     * @param amount Amount withdrawn.
-     */
+    /// @notice Emitted when a user withdraws previously deposited tokens.
     event Withdrawn(address indexed user, address indexed token, uint256 amount);
 
     // -------------------------------------------------------------------------
     // Errors
     // -------------------------------------------------------------------------
-
-    /// @notice Token or recipient address is the zero address.
-    error ZeroAddress();
-
-    /// @notice Amount argument is zero.
-    error ZeroAmount();
 
     /// @notice Requested withdrawal exceeds the user's recorded deposit.
     error InsufficientDeposit(uint256 available, uint256 requested);
@@ -110,23 +56,6 @@ contract LendingPool {
 
     /// @notice Repay called but the caller has no outstanding debt for this token.
     error NothingToRepay();
-
-    /// @notice Low-level ERC-20 transfer call failed or returned false.
-    error TransferFailed();
-
-    /// @notice Call entered a function protected by nonReentrant while locked.
-    error Reentrancy();
-
-    // -------------------------------------------------------------------------
-    // Modifiers
-    // -------------------------------------------------------------------------
-
-    modifier nonReentrant() {
-        if (_locked != 1) revert Reentrancy();
-        _locked = 2;
-        _;
-        _locked = 1;
-    }
 
     // -------------------------------------------------------------------------
     // External: core actions
@@ -155,7 +84,6 @@ contract LendingPool {
      * @notice Borrow `amount` of `token` against the caller's existing deposit.
      * @dev    Borrow ceiling = COLLATERAL_FACTOR * deposits[token][caller] / BASIS.
      *         Single-asset model: only the same token can be used as collateral.
-     *         Cross-asset collateral requires an oracle integration (future work).
      * @param token  ERC-20 token to borrow.
      * @param amount Amount to borrow.
      */
@@ -193,7 +121,6 @@ contract LendingPool {
         uint256 outstanding = borrows[token][msg.sender];
         if (outstanding == 0) revert NothingToRepay();
 
-        // Cap to actual debt so callers can use type(uint256).max for full repayment
         uint256 repayAmount = amount > outstanding ? outstanding : amount;
 
         _safeTransferFrom(token, msg.sender, address(this), repayAmount);
@@ -219,9 +146,8 @@ contract LendingPool {
         uint256 deposited = deposits[token][msg.sender];
         if (amount > deposited) revert InsufficientDeposit(deposited, amount);
 
-        // Minimum deposit required to keep active borrows within collateral factor.
-        // Uses ceiling division so rounding never allows an under-collateralised state.
         uint256 debt = borrows[token][msg.sender];
+        // Ceiling division so rounding never allows an under-collateralised state.
         uint256 minDeposit = debt == 0 ? 0 : (debt * _BASIS + COLLATERAL_FACTOR - 1) / COLLATERAL_FACTOR;
 
         uint256 maxWithdraw = minDeposit >= deposited ? 0 : deposited - minDeposit;
@@ -236,31 +162,5 @@ contract LendingPool {
         _safeTransfer(token, msg.sender, amount);
 
         emit Withdrawn(msg.sender, token, amount);
-    }
-
-    // -------------------------------------------------------------------------
-    // Internal: safe ERC-20 wrappers
-    // -------------------------------------------------------------------------
-
-    /**
-     * @dev Low-level transferFrom that handles both bool-returning (standard)
-     *      and non-returning (e.g. USDT) ERC-20 implementations.
-     */
-    function _safeTransferFrom(address token, address from, address to, uint256 amount) internal {
-        (bool ok, bytes memory data) = token.call(
-            abi.encodeWithSignature("transferFrom(address,address,uint256)", from, to, amount)
-        );
-        if (!ok || (data.length != 0 && !abi.decode(data, (bool)))) revert TransferFailed();
-    }
-
-    /**
-     * @dev Low-level transfer that handles both bool-returning and
-     *      non-returning ERC-20 implementations.
-     */
-    function _safeTransfer(address token, address to, uint256 amount) internal {
-        (bool ok, bytes memory data) = token.call(
-            abi.encodeWithSignature("transfer(address,uint256)", to, amount)
-        );
-        if (!ok || (data.length != 0 && !abi.decode(data, (bool)))) revert TransferFailed();
     }
 }

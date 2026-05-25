@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import {Test} from "forge-std/Test.sol";
 import {LendingPool} from "../src/contracts/LendingPool.sol";
+import {Collateral} from "../src/contracts/Collateral.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 
 contract LendingPoolTest is Test {
@@ -72,13 +73,13 @@ contract LendingPoolTest is Test {
 
     function test_deposit_revert_zeroAddress() public {
         vm.prank(ALICE);
-        vm.expectRevert(LendingPool.ZeroAddress.selector);
+        vm.expectRevert(Collateral.ZeroAddress.selector);
         pool.deposit(address(0), DEPOSIT);
     }
 
     function test_deposit_revert_zeroAmount() public {
         vm.prank(ALICE);
-        vm.expectRevert(LendingPool.ZeroAmount.selector);
+        vm.expectRevert(Collateral.ZeroAmount.selector);
         pool.deposit(address(token), 0);
     }
 
@@ -130,14 +131,14 @@ contract LendingPoolTest is Test {
     function test_borrow_revert_zeroAddress() public {
         _deposit(ALICE, DEPOSIT);
         vm.prank(ALICE);
-        vm.expectRevert(LendingPool.ZeroAddress.selector);
+        vm.expectRevert(Collateral.ZeroAddress.selector);
         pool.borrow(address(0), 100e18);
     }
 
     function test_borrow_revert_zeroAmount() public {
         _deposit(ALICE, DEPOSIT);
         vm.prank(ALICE);
-        vm.expectRevert(LendingPool.ZeroAmount.selector);
+        vm.expectRevert(Collateral.ZeroAmount.selector);
         pool.borrow(address(token), 0);
     }
 
@@ -247,13 +248,13 @@ contract LendingPoolTest is Test {
 
     function test_repay_revert_zeroAddress() public {
         vm.prank(ALICE);
-        vm.expectRevert(LendingPool.ZeroAddress.selector);
+        vm.expectRevert(Collateral.ZeroAddress.selector);
         pool.repay(address(0), 1e18);
     }
 
     function test_repay_revert_zeroAmount() public {
         vm.prank(ALICE);
-        vm.expectRevert(LendingPool.ZeroAmount.selector);
+        vm.expectRevert(Collateral.ZeroAmount.selector);
         pool.repay(address(token), 0);
     }
 
@@ -345,13 +346,13 @@ contract LendingPoolTest is Test {
 
     function test_withdraw_revert_zeroAddress() public {
         vm.prank(ALICE);
-        vm.expectRevert(LendingPool.ZeroAddress.selector);
+        vm.expectRevert(Collateral.ZeroAddress.selector);
         pool.withdraw(address(0), 1e18);
     }
 
     function test_withdraw_revert_zeroAmount() public {
         vm.prank(ALICE);
-        vm.expectRevert(LendingPool.ZeroAmount.selector);
+        vm.expectRevert(Collateral.ZeroAmount.selector);
         pool.withdraw(address(token), 0);
     }
 
