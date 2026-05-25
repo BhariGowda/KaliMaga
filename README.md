@@ -1,22 +1,34 @@
-# KaliMaga — JavaScript / TypeScript for Web3
+# KaliMaga — DeFi Protocol by Bhari Gowda
 
-Ethereum tooling, smart contract utilities, and DeFi experiments by **Bhari Gowda**.
+A from-scratch DEX Aggregator and Lending & Borrowing protocol built in Solidity.
+Portfolio project going from DeFi user to DeFi builder.
+Built with Claude Code.
 
-## Focus
+## Protocols
 
-- Smart contract security & auditing
-- Solidity learning
-- Ethereum tooling (unit math, RPC interaction, event parsing)
-- JavaScript / TypeScript automation
-- Web3 / DeFi experiments
+### DEX Aggregator
+- Off-chain quote fetching (Uniswap v3 + 1inch)
+- On-chain swap execution via DexRouter.sol
+
+### Lending & Borrowing
+- Deposit, borrow, repay, withdraw
+- 75% collateral factor, reentrancy guard, USDT-safe transfers
+- Aave-inspired, built from scratch
 
 ## Stack
 
 | Layer | Tool |
 |---|---|
-| Smart contracts | Solidity + Foundry |
+| Smart contracts | Solidity 0.8.20 + Foundry |
 | Ethereum client | Viem |
 | Language | TypeScript / JavaScript |
+| AI assistant | Claude Code |
 | OS | Ubuntu 24.04 |
 
-## Structure
+## Tests
+
+Run: forge test — 43/43 passing.
+
+## Goal
+
+Build. Test. Deploy. Ship.
