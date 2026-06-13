@@ -1,6 +1,6 @@
 # KaliMaga
 
-A DeFi protocol suite built from scratch in Solidity — an AMM-style decentralized exchange paired with a multi-asset lending and borrowing market.
+A DeFi protocol suite built from scratch in Solidity  an AMM-style decentralized exchange paired with a multi-asset lending and borrowing market.
 
 This is a portfolio project focused on understanding how core DeFi primitives work under the hood, not just how to use them: constant-product market making, share-based yield accounting, utilization-based interest rates, and collateral-factor-weighted health checks.
 
