@@ -28,7 +28,9 @@ contract KaliMagaPairTest is Test {
 
     function test_Mint_LocksMinimumLiquidity() public {
         vm.startPrank(alice);
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         tokenA.transfer(address(pair), 1000e18);
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         tokenB.transfer(address(pair), 1000e18);
         uint256 liquidity = pair.mint(alice);
         vm.stopPrank();
@@ -45,7 +47,9 @@ contract KaliMagaPairTest is Test {
 
     function test_RevertWhen_SwapWithoutSendingInput() public {
         vm.startPrank(alice);
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         tokenA.transfer(address(pair), 1000e18);
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         tokenB.transfer(address(pair), 1000e18);
         pair.mint(alice);
 
@@ -57,7 +61,9 @@ contract KaliMagaPairTest is Test {
 
     function test_RevertWhen_SwapExceedsReserves() public {
         vm.startPrank(alice);
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         tokenA.transfer(address(pair), 1000e18);
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         tokenB.transfer(address(pair), 1000e18);
         pair.mint(alice);
 
