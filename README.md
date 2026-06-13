@@ -30,12 +30,12 @@ This is a portfolio project focused on understanding how core DeFi primitives wo
 | Compilation | via-ir pipeline (optimizer enabled) |
 
 ## Tests
-20/20 tests passing — covering core AMM flows (mint/burn/swap, K-invariant checks, minimum liquidity lock) and lending flows (deposit, borrow against collateral, repayment, interest accrual over time).
+20/20 tests passing  covering core AMM flows (mint/burn/swap, K-invariant checks, minimum liquidity lock) and lending flows (deposit, borrow against collateral, repayment, interest accrual over time).
 
 ## Roadmap
 
 - [ ] Flash loans on the lending pool
-- [ ] Liquidation engine — seize undercollateralized positions and settle them through the built-in DEX router
+- [ ] Liquidation engine seize undercollateralized positions and settle them through the built-in DEX router
 - [ ] Fuzz and invariant tests
 - [ ] CI pipeline running the test suite on every push
 
