@@ -16,7 +16,7 @@ This is a portfolio project focused on understanding how core DeFi primitives wo
 ### Lending & Borrowing
 
 - Multi-asset money market (`KaliMagaLendingPool`)
-- Share-based supply accounting — depositors earn yield via a growing exchange rate (Compound-style)
+- Share-based supply accounting  depositors earn yield via a growing exchange rate (Compound-style)
 - Two-slope, utilization-based interest rate model (`KaliMagaInterestRateModel`)
 - Per-asset collateral factors and a health-factor check gating borrows and withdrawals
 - Simple owner-managed price oracle, structured to be swapped for a real feed later
