@@ -7,6 +7,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {KaliMagaInterestRateModel} from "./KaliMagaInterestRateModel.sol";
 import {KaliMagaPriceOracle} from "./KaliMagaPriceOracle.sol";
+import {IFlashLoanReceiver} from "../interfaces/IFlashLoanReceiver.sol";
 
 /// @title KaliMagaLendingPool
 /// @notice Multi-asset money market: share-based supply (Compound-style exchange rate),
@@ -225,4 +226,30 @@ contract KaliMagaLendingPool is Ownable, ReentrancyGuard {
         if (borrowValue == 0) return type(uint256).max;
         return (collateralValue * SCALE) / borrowValue;
     }
+
+    /// @notice Borrow `amount` of `asset` in a single transaction, repaying `amount + fee` before returning.
+    /// Fee is 0.09% of the borrowed amount.
+    function flashLoan(address receiver, address asset, uint256 amount, bytes calldata data)
+        external
+        nonReentrant
+    {
+        Market storage market = markets[asset];
+        if (!market.isListed) revert MarketNotListed();
+        if (amount == 0) revert ZeroAmount();
+
+        uint256 fee = (amount * 9) / 10_000; // 0.09%
+        uint256 balanceBefore = IERC20(asset).balanceOf(address(this));
+        if (balanceBefore < amount) revert InsufficientCash();
+
+        IERC20(asset).safeTransfer(receiver, amount);
+
+        bool success = IFlashLoanReceiver(receiver).executeOperation(asset, amount, fee, msg.sender, data);
+        require(success, "flash loan callback failed");
+
+        uint256 balanceAfter = IERC20(asset).balanceOf(address(this));
+        require(balanceAfter >= balanceBefore + fee, "flash loan not repaid");
+
+        market.totalBorrows += fee;
+    }
+
 }
