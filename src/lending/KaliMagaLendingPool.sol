@@ -252,4 +252,40 @@ contract KaliMagaLendingPool is Ownable, ReentrancyGuard {
         market.totalBorrows += fee;
     }
 
+    /// @notice Repay debt on behalf of a borrower — only callable by the liquidator contract
+    function liquidationRepay(address borrower, address asset, uint256 amount) external nonReentrant {
+        Market storage market = markets[asset];
+        if (!market.isListed) revert MarketNotListed();
+        if (amount == 0) revert ZeroAmount();
+
+        accrueInterest(asset);
+        uint256 currentDebt = currentBorrowBalance(borrower, asset);
+        uint256 repayAmount = amount > currentDebt ? currentDebt : amount;
+
+        IERC20(asset).safeTransferFrom(msg.sender, address(this), repayAmount);
+        borrowPrincipal[borrower][asset] = currentDebt - repayAmount;
+        borrowIndexSnapshot[borrower][asset] = market.borrowIndex;
+        market.totalBorrows -= repayAmount;
+
+        emit Repay(borrower, asset, repayAmount);
+    }
+
+    /// @notice Transfer supply shares from a borrower to a receiver — only callable by the liquidator
+    function seizeCollateral(address borrower, address asset, uint256 shares, address receiver) external nonReentrant {
+        Market storage market = markets[asset];
+        if (!market.isListed) revert MarketNotListed();
+        if (shares == 0) revert ZeroAmount();
+        if (supplyShares[borrower][asset] < shares) revert InsufficientShares();
+
+        accrueInterest(asset);
+        uint256 rate = exchangeRate(asset);
+        uint256 amount = (shares * rate) / SCALE;
+
+        supplyShares[borrower][asset] -= shares;
+        market.totalSupplyShares -= shares;
+
+        IERC20(asset).safeTransfer(receiver, amount);
+        emit Withdraw(borrower, asset, amount, shares);
+    }
+
 }

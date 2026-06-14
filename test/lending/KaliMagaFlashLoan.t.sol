@@ -18,6 +18,7 @@ contract HonestReceiver is IFlashLoanReceiver {
         address,
         bytes calldata
     ) external override returns (bool) {
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         IERC20(asset).transfer(msg.sender, amount + fee);
         return true;
     }
@@ -33,6 +34,7 @@ contract DishonestReceiver is IFlashLoanReceiver {
         bytes calldata
     ) external override returns (bool) {
         // deliberately underpays — no fee returned
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         IERC20(asset).transfer(msg.sender, amount);
         return true;
     }
@@ -47,6 +49,7 @@ contract FailingReceiver is IFlashLoanReceiver {
         address,
         bytes calldata
     ) external override returns (bool) {
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         IERC20(asset).transfer(msg.sender, amount + fee);
         return false;
     }
