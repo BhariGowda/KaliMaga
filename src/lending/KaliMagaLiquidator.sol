@@ -12,7 +12,7 @@ import {KaliMagaRouter} from "../core/KaliMagaRouter.sol";
 /// @notice Seizes collateral from undercollateralized positions and settles the debt
 /// through the built-in KaliMaga DEX router. The liquidation bonus goes to the caller.
 ///
-/// Flow:
+/// Flow:-
 /// 1. Caller identifies a borrower whose health factor has dropped below 1.0
 /// 2. Caller calls liquidate(), supplying the debt asset to repay
 /// 3. This contract repays the debt to the lending pool
