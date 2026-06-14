@@ -41,4 +41,4 @@ This is a portfolio project focused on understanding how core DeFi primitives wo
 
 ## Goal
 
-Build a coherent protocol suite where the AMM and lending market actually interact — not just two unrelated contracts side by side.
+Build a coherent protocol suite where the AMM and lending market actually interact  not just two unrelated contracts side by side.
