@@ -6,7 +6,7 @@ This is a portfolio project focused on understanding how core DeFi primitives wo
 
 ## Protocols
 
-### AMM / DEX
+### AMM / DEXs
 
 - Constant-product pairs (`KaliMagaPair`) with a 0.3% swap fee
 - Factory (`KaliMagaFactory`) deploying pairs deterministically via CREATE2
