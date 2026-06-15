@@ -37,7 +37,11 @@ This is a portfolio project focused on understanding how core DeFi primitives wo
 - [x] Flash loans on the lending pool
 - [ ] Liquidation engine seize undercollateralized positions and settle them through the built-in DEX router
 - [x] Fuzz and invariant tests
-- [ ] CI pipeline running the test suite on every push
+- [x] CI pipeline running the test suite on every push
+
+## Security
+
+A self-audit covering the full protocol scope is available in [AUDIT.md](AUDIT.md). Findings: 1 High (fixed), 2 Medium, 2 Low, 2 Informational.
 
 ## Goal
 
