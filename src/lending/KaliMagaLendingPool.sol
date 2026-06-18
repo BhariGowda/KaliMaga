@@ -10,8 +10,12 @@ import {KaliMagaPriceOracle} from "./KaliMagaPriceOracle.sol";
 import {IFlashLoanReceiver} from "../interfaces/IFlashLoanReceiver.sol";
 
 /// @title KaliMagaLendingPool
-/// @notice Multi-asset money market: share-based supply (Compound-style exchange rate),
-/// borrow-index-based debt accrual, and collateral-factor-weighted health factor.
+/// @author Bhari Gowda
+/// @notice Multi-asset money market with share-based supply accounting, borrow-index debt
+/// accrual, collateral-factor-weighted health factor, and single-transaction flash loans.
+/// @dev Supply shares grow in value over time as interest accrues — depositors earn yield
+/// via the exchange rate without needing to claim. Health factor must stay >= 1e18 after
+/// any borrow or withdraw, enforced at the end of each state-changing call.
 contract KaliMagaLendingPool is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
@@ -57,7 +61,11 @@ contract KaliMagaLendingPool is Ownable, ReentrancyGuard {
         priceOracle = KaliMagaPriceOracle(_priceOracle);
     }
 
-    /// @notice List a new asset as a market, available for supply and borrow
+    /// @notice List a new asset as a market, enabling supply and borrow for that token.
+    /// @dev Only callable by the owner. CollateralFactorBps must be <= 10000 (100%).
+    /// @param asset ERC20 token address to list
+    /// @param interestRateModel Address of the KaliMagaInterestRateModel for this asset
+    /// @param collateralFactorBps Fraction of supplied value usable as collateral (in bps, e.g. 7500 = 75%)
     function addMarket(address asset, address interestRateModel, uint256 collateralFactorBps) external onlyOwner {
         if (markets[asset].isListed) revert MarketAlreadyListed();
         if (collateralFactorBps > BPS) revert InvalidCollateralFactor();
@@ -76,7 +84,10 @@ contract KaliMagaLendingPool is Ownable, ReentrancyGuard {
         emit MarketListed(asset, interestRateModel, collateralFactorBps);
     }
 
-    /// @notice Accrue interest on `asset`'s market up to the current block timestamp
+    /// @notice Accrue interest on `asset` up to the current block timestamp.
+    /// @dev Updates totalBorrows and borrowIndex based on elapsed time and the current
+    /// utilization rate. No-op if called within the same block as the last accrual.
+    /// @param asset Market to accrue interest for
     function accrueInterest(address asset) public {
         Market storage market = markets[asset];
         if (!market.isListed) revert MarketNotListed();
@@ -96,7 +107,10 @@ contract KaliMagaLendingPool is Ownable, ReentrancyGuard {
         market.lastAccrualTime = block.timestamp;
     }
 
-    /// @notice Current exchange rate between supply shares and underlying `asset`, scaled by 1e18
+    /// @notice Current exchange rate between supply shares and underlying asset, scaled by 1e18.
+    /// @dev Rate = (cash + totalBorrows) / totalSupplyShares. Starts at 1e18 and grows as interest accrues.
+    /// @param asset Market to query
+    /// @return Exchange rate scaled by 1e18
     function exchangeRate(address asset) public view returns (uint256) {
         Market storage market = markets[asset];
         if (market.totalSupplyShares == 0) return SCALE;
@@ -105,7 +119,11 @@ contract KaliMagaLendingPool is Ownable, ReentrancyGuard {
         return (totalAssets * SCALE) / market.totalSupplyShares;
     }
 
-    /// @notice Current borrow balance of `user` in `asset`, including accrued interest
+    /// @notice Current borrow balance of `user` in `asset`, including accrued interest.
+    /// @dev Uses the stored borrowIndex snapshot to scale principal up to the current index.
+    /// @param user Borrower address
+    /// @param asset Market to query
+    /// @return Current debt including accrued interest
     function currentBorrowBalance(address user, address asset) public view returns (uint256) {
         uint256 principal = borrowPrincipal[user][asset];
         if (principal == 0) return 0;
@@ -113,7 +131,10 @@ contract KaliMagaLendingPool is Ownable, ReentrancyGuard {
         return (principal * markets[asset].borrowIndex) / snapshot;
     }
 
-    /// @notice Deposit `amount` of `asset`, minting supply shares to the caller
+    /// @notice Deposit `amount` of `asset` into the pool, minting supply shares to the caller.
+    /// @dev Shares are calculated at the current exchange rate. Approval required before calling.
+    /// @param asset Market to deposit into
+    /// @param amount Amount of asset to deposit
     function deposit(address asset, uint256 amount) external nonReentrant {
         Market storage market = markets[asset];
         if (!market.isListed) revert MarketNotListed();
@@ -131,7 +152,10 @@ contract KaliMagaLendingPool is Ownable, ReentrancyGuard {
         emit Deposit(msg.sender, asset, amount, shares);
     }
 
-    /// @notice Burn `shares` of `asset` supply, returning underlying tokens to the caller
+    /// @notice Burn `shares` of supply and return the underlying asset to the caller.
+    /// @dev Reverts if the withdrawal would push the caller's health factor below 1e18.
+    /// @param asset Market to withdraw from
+    /// @param shares Number of supply shares to burn
     function withdraw(address asset, uint256 shares) external nonReentrant {
         Market storage market = markets[asset];
         if (!market.isListed) revert MarketNotListed();
@@ -155,7 +179,11 @@ contract KaliMagaLendingPool is Ownable, ReentrancyGuard {
         emit Withdraw(msg.sender, asset, amount, shares);
     }
 
-    /// @notice Borrow `amount` of `asset` against the caller's supplied collateral
+    /// @notice Borrow `amount` of `asset` against the caller's supplied collateral.
+    /// @dev Reverts if the borrow would push the caller's health factor below 1e18.
+    /// Interest begins accruing immediately against the current borrow index.
+    /// @param asset Market to borrow from
+    /// @param amount Amount of asset to borrow
     function borrow(address asset, uint256 amount) external nonReentrant {
         Market storage market = markets[asset];
         if (!market.isListed) revert MarketNotListed();
@@ -178,7 +206,11 @@ contract KaliMagaLendingPool is Ownable, ReentrancyGuard {
         emit Borrow(msg.sender, asset, amount);
     }
 
-    /// @notice Repay up to `amount` of the caller's debt in `asset`
+    /// @notice Repay up to `amount` of the caller's outstanding debt in `asset`.
+    /// @dev If `amount` exceeds current debt, only the actual debt is repaid.
+    /// Approval required before calling.
+    /// @param asset Market to repay into
+    /// @param amount Amount to repay (capped at current debt if higher)
     function repay(address asset, uint256 amount) external nonReentrant {
         Market storage market = markets[asset];
         if (!market.isListed) revert MarketNotListed();
@@ -198,7 +230,11 @@ contract KaliMagaLendingPool is Ownable, ReentrancyGuard {
         emit Repay(msg.sender, asset, repayAmount);
     }
 
-    /// @notice Collateral value (weighted by collateral factor) and borrow value for `user`, in USD (1e18)
+    /// @notice Returns the weighted collateral value and total borrow value for `user`, both in USD scaled by 1e18.
+    /// @dev Iterates over all listed markets. Collateral value is supply * price * collateralFactor.
+    /// @param user Address to evaluate
+    /// @return collateralValue Weighted collateral value in USD (1e18)
+    /// @return borrowValue Total outstanding borrow value in USD (1e18)
     function getAccountLiquidity(address user) public view returns (uint256 collateralValue, uint256 borrowValue) {
         uint256 len = marketList.length;
         for (uint256 i; i < len; i++) {
@@ -220,15 +256,24 @@ contract KaliMagaLendingPool is Ownable, ReentrancyGuard {
         }
     }
 
-    /// @notice Health factor of `user`, scaled by 1e18. type(uint256).max if the user has no debt.
+    /// @notice Health factor of `user`, scaled by 1e18.
+    /// @dev Returns type(uint256).max if the user has no debt. A value below 1e18 means the
+    /// position is undercollateralized and eligible for liquidation.
+    /// @param user Address to evaluate
+    /// @return Health factor scaled by 1e18
     function healthFactor(address user) public view returns (uint256) {
         (uint256 collateralValue, uint256 borrowValue) = getAccountLiquidity(user);
         if (borrowValue == 0) return type(uint256).max;
         return (collateralValue * SCALE) / borrowValue;
     }
 
-    /// @notice Borrow `amount` of `asset` in a single transaction, repaying `amount + fee` before returning.
-    /// Fee is 0.09% of the borrowed amount.
+    /// @notice Borrow `amount` of `asset` in a single transaction via a flash loan.
+    /// @dev The receiver must implement IFlashLoanReceiver and repay amount + fee before returning.
+    /// Fee is 0.09% of the borrowed amount, accrued to totalBorrows to benefit suppliers.
+    /// @param receiver Contract implementing IFlashLoanReceiver that will receive and repay the loan
+    /// @param asset Market asset to borrow
+    /// @param amount Amount to borrow
+    /// @param data Arbitrary calldata forwarded to the receiver's executeOperation callback
     function flashLoan(address receiver, address asset, uint256 amount, bytes calldata data)
         external
         nonReentrant
@@ -252,7 +297,11 @@ contract KaliMagaLendingPool is Ownable, ReentrancyGuard {
         market.totalBorrows += fee;
     }
 
-    /// @notice Repay debt on behalf of a borrower — only callable by the liquidator contract
+    /// @notice Repay debt on behalf of a borrower. Intended to be called only by the liquidator.
+    /// @dev Pulls repayment from msg.sender (the liquidator). Caps repayment at current debt.
+    /// @param borrower Address whose debt is being repaid
+    /// @param asset Market to repay into
+    /// @param amount Amount to repay
     function liquidationRepay(address borrower, address asset, uint256 amount) external nonReentrant {
         Market storage market = markets[asset];
         if (!market.isListed) revert MarketNotListed();
@@ -270,7 +319,12 @@ contract KaliMagaLendingPool is Ownable, ReentrancyGuard {
         emit Repay(borrower, asset, repayAmount);
     }
 
-    /// @notice Transfer supply shares from a borrower to a receiver — only callable by the liquidator
+    /// @notice Seize supply shares from an undercollateralized borrower. Intended to be called only by the liquidator.
+    /// @dev Transfers the underlying asset directly to `receiver` after burning the borrower's shares.
+    /// @param borrower Address to seize collateral from
+    /// @param asset Collateral market to seize from
+    /// @param shares Number of supply shares to seize
+    /// @param receiver Address to send the seized underlying tokens to
     function seizeCollateral(address borrower, address asset, uint256 shares, address receiver) external nonReentrant {
         Market storage market = markets[asset];
         if (!market.isListed) revert MarketNotListed();
