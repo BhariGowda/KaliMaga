@@ -5,6 +5,38 @@
 KaliMaga is a DeFi protocol suite built from scratch in Solidity. The core design decision is that the AMM and the lending market are not independent modules — the liquidation engine deliberately routes through the internal DEX router to settle undercollateralized positions. This means the two halves of the protocol compose with each other rather than sitting side by side.
 
 ## Module Map
+
+```
+src/
+
+├── core/
+
+│   ├── KaliMagaPair.sol              # Constant-product AMM pool (x*y=k), LP share minting
+
+│   ├── KaliMagaFactory.sol           # CREATE2 pair deployer and registry
+
+│   ├── KaliMagaRouter.sol            # User entry point: add/remove liquidity, swap
+
+│   └── KaliMagaLibrary.sol           # Shared math: quote, getAmountOut, getAmountsOut
+
+├── lending/
+
+│   ├── KaliMagaLendingPool.sol       # Multi-asset money market, flash loans
+
+│   ├── KaliMagaInterestRateModel.sol # Two-slope utilization-based rate model
+
+│   ├── KaliMagaPriceOracle.sol       # Owner-managed price feed (Chainlink-ready interface)
+
+│   └── KaliMagaLiquidator.sol        # Liquidation engine: seize collateral, swap, repay
+
+└── interfaces/
+
+├── IKaliMagaPair.sol
+
+├── IKaliMagaFactory.sol
+
+└── IFlashLoanReceiver.sol
+
 ## AMM Design
 
 The AMM follows the Uniswap V2 constant-product model (x*y=k) with a 0.3% swap fee retained in the pool for LP holders. Key design choices:
