@@ -43,6 +43,20 @@ This is a portfolio project focused on understanding how core DeFi primitives wo
 
 A self-audit covering the full protocol scope is available in [AUDIT.md](AUDIT.md). Findings: 1 High (fixed), 2 Medium, 2 Low, 2 Informational.
 
+Static analysis findings and notes: [docs/SLITHER.md](docs/SLITHER.md).
+
+## Test Coverage
+
+90.5% line coverage, 93.3% function coverage across 41 tests (unit, fuzz, invariant). Full breakdown and honest assessment of branch coverage gaps: [docs/COVERAGE.md](docs/COVERAGE.md).
+
+## Deployment
+
+Deploy scripts and a step-by-step Sepolia guide are available in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+
+## Architecture
+
+Design decisions for the AMM, lending, and liquidation modules are documented in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
 ## Goal
 
 Build a coherent protocol suite where the AMM and lending market actually interact  not just two unrelated contracts side by side.
