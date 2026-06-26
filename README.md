@@ -41,7 +41,7 @@ This is a portfolio project focused on understanding how core DeFi primitives wo
 
 ## Security
 
-A self-audit covering the full protocol scope is available in [AUDIT.md](AUDIT.md). Findings: 1 High (fixed), 2 Medium, 2 Low, 2 Informational.
+A self-audit covering the full protocol scope is available in [docs/AUDIT.md](docs/AUDIT.md). Findings: 1 High (fixed), 2 Medium, 2 Low, 2 Informational.
 
 Static analysis findings and notes: [docs/SLITHER.md](docs/SLITHER.md).
 
@@ -56,6 +56,14 @@ Deploy scripts and a step-by-step Sepolia guide are available in [docs/DEPLOYMEN
 ## Architecture
 
 Design decisions for the AMM, lending, and liquidation modules are documented in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for dev setup, code standards, and PR process.
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for a full history of what was built and when.
 
 ## Goal
 
